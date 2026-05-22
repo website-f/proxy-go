@@ -122,47 +122,181 @@ rate_limit:
 
 DNS for the domain must already point at the VPS. Test with `dig +short newdomain.com`.
 
-## Project-side requirements
+## Onboarding a new project (the workflow you'll use every time)
 
-A project doesn't need any `jobcloud` awareness. Just publish its HTTP service on a **loopback** port on the host:
+Every new project on this VPS follows the same six steps. The only real thinking is in step 3 — what to edit in the project's compose so it cooperates with jobcloud instead of fighting it for ports 80/443.
 
-```yaml
-# in any project's docker-compose.yml
-services:
-  web:
-    # ...
-    ports:
-      - "127.0.0.1:8082:8000"   # 8082 on host, only reachable via jobcloud
+### The mental model
+
+```
+public internet
+       │
+       ▼  :80 / :443
+┌──────────────┐
+│   jobcloud   │   ← single proxy, all TLS lives here
+└──────┬───────┘
+       │  HTTP only, plaintext, over host loopback
+       ▼  127.0.0.1:<your-project-port>
+┌──────────────────────────────────────┐
+│  your project's docker stack         │
+│  (nginx, gunicorn, node, whatever)   │
+└──────────────────────────────────────┘
 ```
 
-Then add `127.0.0.1:8082` as an upstream in jobcloud. Done.
+Each project picks a unique host loopback port (e.g. `127.0.0.1:8100`), publishes its HTTP entrypoint there, and jobcloud routes the public domain to it. **Projects never bind 80 or 443 on the host** — that's jobcloud's job.
 
-> ⚠ If you bind `0.0.0.0:8082` (or just `"8082:8000"`), the port is publicly reachable, bypassing jobcloud. Always prefix with `127.0.0.1:`.
+### Step 1 — Pick a port range for the project
 
-### Picking a free host port
-
-Two projects can't bind the same host port. Container-internal port can repeat — only the host side must be unique.
+Two projects can't share a host port. Container-internal ports may repeat freely.
 
 ```bash
 ss -tlnp | grep '127.0.0.1:' | awk '{print $4}' | sort -u
 ```
 
-Lists every loopback port already in use. Pick anything not in the list. A simple convention: assign each project a range, e.g.:
+Lists every loopback port already in use. Pick something free. A simple convention is to assign each project a 100-port range so you have room to grow:
 
-| Project   | Port range |
-|-----------|------------|
-| fitclaw   | 8000-8099  |
-| jobapp    | 8100-8199  |
-| next one  | 8200-8299  |
+| Project   | Range      | Used for                             |
+|-----------|------------|--------------------------------------|
+| fitclaw   | 8000-8099  | api (8000), n8n (5678 — legacy)      |
+| jobapp    | 8100-8199  | nginx (8100)                         |
+| next one  | 8200-8299  | …                                    |
 
-### Per-project deployment checklist
+Write this table down somewhere (the project's own README is a good place).
 
-1. DNS A-record for the domain → VPS public IP (do this first; LE needs it).
-2. `cd /opt && git clone <repo> <project>`
-3. Open the project's `docker-compose.yml`, confirm each public-facing service has `ports: "127.0.0.1:<free-port>:<container-port>"`. Edit if needed.
-4. `docker compose up -d`
-5. In jobcloud admin UI → **+ Add site** → domain + `127.0.0.1:<free-port>` → Save.
-6. Wait ~10–30s for Let's Encrypt to issue the cert (watch `docker compose logs -f jobcloud`). Done.
+### Step 2 — Point DNS at the VPS
+
+A-record `app.example.com` → VPS public IP. Do this *before* step 5 so Let's Encrypt's HTTP-01 challenge succeeds on first try.
+
+Verify: `dig +short app.example.com` should return the VPS IP.
+
+### Step 3 — Clone the project and edit its compose
+
+```bash
+cd /opt
+git clone <repo> myproject
+cd myproject
+```
+
+Open the compose file you'll actually run on the VPS (usually `docker-compose.prod.yml` or just `docker-compose.yml`). Find the **public-facing** service — whatever serves HTTP to end users (an nginx, a node app, a gunicorn, …). Three cases you'll see in the wild:
+
+#### Case A — Already loopback-bound ✅
+
+```yaml
+services:
+  web:
+    ports:
+      - "127.0.0.1:8123:8000"
+```
+
+No edit needed. Just remember the host port (`8123` here) for step 5.
+
+#### Case B — Publicly bound (most common) ⚠️
+
+```yaml
+services:
+  web:
+    ports:
+      - "8000:8000"         # binds 0.0.0.0:8000 — PUBLIC
+```
+
+Change to bind on loopback with your chosen port:
+
+```yaml
+services:
+  web:
+    ports:
+      - "127.0.0.1:8123:8000"   # was "8000:8000"
+```
+
+#### Case C — Project has its own nginx with TLS (full pre-jobcloud setup)
+
+This is what the jobapp backend looked like — an internal nginx terminating TLS on 80/443 with `ssl_certificate` paths. Three edits:
+
+1. **Compose** — collapse to a single loopback port, drop the certs volume:
+   ```yaml
+   nginx:
+     ports:
+       - "127.0.0.1:8123:80"   # was "80:80" + "443:443"
+     volumes:
+       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+       # - ./docker/nginx/certs:/etc/nginx/certs:ro   ← DELETE this line
+   ```
+2. **nginx config** — delete the `listen 443 ssl;` server block, the `ssl_certificate` lines, and the HTTP→HTTPS redirect. Keep one `listen 80;` block that proxies straight to the app. Pass jobcloud's `X-Forwarded-Proto` through to the app:
+   ```nginx
+   set_real_ip_from 127.0.0.1;
+   real_ip_header X-Forwarded-For;
+
+   server {
+     listen 80 default_server;
+     # ...your existing rate-limit + static + location blocks...
+     location / {
+       proxy_pass http://your_upstream;
+       proxy_set_header Host $host;
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+     }
+   }
+   ```
+3. **App-side** — if the app trusted a forwarded-proto header (e.g. Django's `SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')`), keep that setting. It now reads jobcloud's value.
+
+### Step 4 — Bring the project up
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+ss -tlnp | grep 127.0.0.1:8123     # confirm it's actually listening on the loopback port
+curl -I http://127.0.0.1:8123/     # should return a response from the app (200, 302, 404 are all fine — anything but connection refused)
+```
+
+If `curl` works, jobcloud can reach it.
+
+### Step 5 — Add the site in jobcloud
+
+SSH-tunnel to the admin UI (`ssh -L 8090:127.0.0.1:8090 user@vps`) → open `http://127.0.0.1:8090` → **+ Add site**:
+
+- **Domain:** `app.example.com`
+- **Aliases:** `www.app.example.com` (if you want both)
+- **Upstreams:** `127.0.0.1:8123`
+- **Auto-issue Let's Encrypt cert:** ✓
+- **Force HTTPS:** ✓
+- **WebSocket support:** ✓ (leave on unless you know you don't need it)
+- **Enabled:** ✓
+
+Save.
+
+### Step 6 — Watch the cert issue, then test
+
+```bash
+# on the VPS
+docker logs -f jobcloud-jobcloud-1
+```
+
+Within ~10–30s you'll see `obtained certificate for app.example.com`. Hit `https://app.example.com` in a browser — should serve the app over a real TLS cert.
+
+If you see "Bad Gateway" with 100% errors on the jobcloud dashboard, the upstream port is wrong. Re-do the `curl -I http://127.0.0.1:<port>/` check from step 4 and update the site's upstream field.
+
+### What this looks like on disk
+
+After onboarding a couple of projects:
+
+```
+/opt/
+├── jobcloud/jobcloud/        ← jobcloud itself
+│   ├── docker-compose.yml
+│   ├── config.yml
+│   ├── sites/
+│   │   ├── feet.craveasia.com.yml      ← fitclaw site
+│   │   └── api.jobapp.com.yml          ← jobapp site
+│   ├── certs/
+│   └── data/
+├── fitclaw/                  ← project, owns ports 8000-8099
+│   └── docker-compose.yml
+└── jobApp-Backend/           ← project, owns ports 8100-8199
+    └── backend/
+        ├── docker-compose.prod.yml
+        └── docker/nginx/default.conf
+```
+
+jobcloud doesn't read or care about the project folders — they're just where YOU keep code. The link between them is the **port number** in the site config, nothing else.
 
 ## Layout
 
