@@ -1,0 +1,31 @@
+{{define "site-rows"}}
+{{range .Sites}}
+<tr>
+  <td>
+    <a href="/sites/{{.Filename}}">{{.Domain}}</a>
+    {{if .Aliases}}<div class="muted small">+ {{len .Aliases}} alias{{if ne (len .Aliases) 1}}es{{end}}</div>{{end}}
+  </td>
+  <td>
+    {{if .Enabled}}
+      <span class="badge ok">Active</span>
+    {{else}}
+      <span class="badge muted">Disabled</span>
+    {{end}}
+    {{if .TLS.Auto}}<span class="badge tls">TLS</span>{{end}}
+  </td>
+  <td class="mono small">
+    {{range $i, $u := .Upstreams}}{{if $i}}<br>{{end}}{{$u}}{{end}}
+  </td>
+  <td class="num">{{.ReqsPerMin}}</td>
+  <td class="num">{{.P95}}</td>
+  <td class="num {{if gt .ErrsPerMin 0}}warn{{end}}">{{.ErrsPerMin}}</td>
+  <td class="actions">
+    <form method="post" action="/sites/{{.Filename}}/toggle" hx-post="/sites/{{.Filename}}/toggle" hx-target="closest tr" hx-swap="none">
+      <button class="btn small" type="submit">{{if .Enabled}}Disable{{else}}Enable{{end}}</button>
+    </form>
+  </td>
+</tr>
+{{else}}
+<tr><td colspan="7" class="empty">No sites yet. Add one to get started.</td></tr>
+{{end}}
+{{end}}

@@ -1,0 +1,23 @@
+# Per-site config. Drop one of these in /opt/jobcloud/jobcloud/sites/
+# (rename to <domain>.yml — the .example suffix is what stops jobcloud
+# from picking up this file). Hot-reloaded on save.
+
+domain: example.com
+aliases:
+  - www.example.com
+upstreams:
+  - 127.0.0.1:8082          # add more lines for load balancing
+enabled: true
+tls:
+  auto: true                # request Let's Encrypt cert automatically
+http_to_https: true
+websocket: true
+block_common_exploits: true
+rate_limit:
+  enabled: false
+  rps: 30
+  burst: 60
+custom_headers:
+  Strict-Transport-Security: "max-age=31536000; includeSubDomains"
+  X-Frame-Options: "DENY"
+  X-Content-Type-Options: "nosniff"

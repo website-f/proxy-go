@@ -1,0 +1,129 @@
+/* jobcloud — minimal, dark-first UI. No frameworks; everything inline. */
+:root {
+  --bg: #0b1020;
+  --panel: #131a34;
+  --panel-2: #1a2347;
+  --border: #232c52;
+  --text: #e8ecff;
+  --muted: #8a93b8;
+  --primary: #5b8cff;
+  --primary-dark: #3f6fe6;
+  --ok: #22c58a;
+  --warn: #ffb84d;
+  --danger: #ff6168;
+  --tls: #b59cff;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Roboto, sans-serif; }
+body { min-height: 100vh; }
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ---- topbar / nav ---- */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 24px; border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #0d1330 0%, #0b1020 100%);
+}
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 16px; }
+.brand.center { justify-content: center; margin-bottom: 18px; font-size: 18px; }
+.brand .logo { font-size: 20px; }
+.topbar nav { display: flex; gap: 8px; align-items: center; }
+.topbar nav a {
+  padding: 8px 14px; border-radius: 8px; color: var(--muted); font-weight: 500; font-size: 14px;
+}
+.topbar nav a.active { color: var(--text); background: var(--panel-2); }
+.topbar nav a.logout { color: var(--muted); }
+
+/* ---- layout ---- */
+main { max-width: 1180px; margin: 0 auto; padding: 32px 24px 80px; }
+.hero { margin-bottom: 24px; }
+.hero h1 { margin: 0 0 4px 0; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ---- KPI tiles ---- */
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+.kpi {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+  padding: 16px 18px; display: flex; flex-direction: column; gap: 6px;
+}
+.kpi-label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+.kpi-value { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.kpi-value.danger { color: var(--danger); }
+@media (max-width: 760px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+
+/* ---- cards ---- */
+.card {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+  padding: 20px; margin-bottom: 24px;
+}
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.card-header h2 { margin: 0; font-size: 17px; font-weight: 600; }
+
+/* ---- tables ---- */
+table.sites { width: 100%; border-collapse: collapse; }
+table.sites th, table.sites td { padding: 12px 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; }
+table.sites th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+table.sites tr:last-child td { border-bottom: none; }
+table.sites td.actions { text-align: right; }
+table.sites td.empty { text-align: center; padding: 32px; color: var(--muted); }
+
+/* ---- badges ---- */
+.badge {
+  display: inline-block; padding: 2px 9px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  background: var(--panel-2); color: var(--muted);
+}
+.badge.ok { background: rgba(34, 197, 138, 0.15); color: var(--ok); }
+.badge.warn { background: rgba(255, 184, 77, 0.15); color: var(--warn); }
+.badge.tls { background: rgba(181, 156, 255, 0.15); color: var(--tls); margin-left: 4px; }
+
+/* ---- buttons ---- */
+.btn {
+  display: inline-block; padding: 8px 14px; border-radius: 8px;
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+  font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none;
+}
+.btn:hover { background: #212a55; text-decoration: none; }
+.btn.primary { background: var(--primary); border-color: var(--primary); color: white; }
+.btn.primary:hover { background: var(--primary-dark); }
+.btn.danger { background: rgba(255, 97, 104, 0.15); border-color: rgba(255, 97, 104, 0.35); color: var(--danger); }
+.btn.small { padding: 5px 10px; font-size: 12px; }
+.btn.block { width: 100%; padding: 12px; }
+
+/* ---- forms ---- */
+.form label { display: block; margin-bottom: 16px; font-size: 13px; color: var(--muted); }
+.form input[type=text], .form input[type=password], .form input[type=number], .form textarea {
+  display: block; width: 100%; margin-top: 6px;
+  padding: 10px 12px; border-radius: 8px;
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  font-family: inherit;
+}
+.form textarea { font-family: ui-monospace, monospace; resize: vertical; }
+.form input:focus, .form textarea:focus { outline: none; border-color: var(--primary); }
+.form .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form fieldset { border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 16px; }
+.form fieldset legend { padding: 0 6px; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+.form .check { display: flex; align-items: center; gap: 8px; color: var(--text); font-size: 14px; margin-bottom: 8px; }
+.form .check input { width: auto; margin: 0; }
+.form .actions-row { display: flex; gap: 10px; align-items: center; }
+
+/* ---- alerts ---- */
+.alert { padding: 12px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
+.alert.ok { background: rgba(34, 197, 138, 0.12); color: var(--ok); border: 1px solid rgba(34, 197, 138, 0.3); }
+.alert.error { background: rgba(255, 97, 104, 0.12); color: var(--danger); border: 1px solid rgba(255, 97, 104, 0.3); }
+.warn { color: var(--warn); }
+
+/* ---- login ---- */
+.login-body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+.login-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 32px; width: 360px; max-width: calc(100vw - 32px); }
+.login-card h2 { margin: 0 0 20px 0; text-align: center; font-size: 18px; font-weight: 600; }
+
+/* ---- footer ---- */
+.footer { color: var(--muted); font-size: 12px; padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: center; gap: 8px; }
+.footer .sep { opacity: 0.5; }

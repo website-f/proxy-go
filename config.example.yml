@@ -1,0 +1,32 @@
+# jobcloud global config. Copy to config.yml and edit.
+#
+# IMPORTANT: admins[].password_hash is bcrypt. Generate with:
+#   docker compose run --rm jobcloud hash 'your-password-here'
+# or (if you have a local Go install):
+#   go run ./cmd/jobcloud hash 'your-password-here'
+
+admin_addr: "127.0.0.1:8090"        # admin UI bind addr. Loopback ONLY.
+http_addr: ":80"
+https_addr: ":443"
+
+# Required for Let's Encrypt registration + renewal warnings.
+acme_email: "you@example.com"
+
+# Optional. Empty = LE production. Use the staging URL for testing
+# (avoids rate-limiting issues while you iterate on cert config):
+#   acme_directory: "https://acme-staging-v02.api.letsencrypt.org/directory"
+acme_directory: ""
+
+# Set true ONLY if jobcloud sits behind another L7 proxy (e.g.
+# Cloudflare). When false (default) the direct peer IP is used —
+# correct when jobcloud IS the edge.
+trust_forwarded_headers: false
+
+# Leave empty to auto-generate a 48-byte secret on first run.
+# Persisted to <data>/secret.key so sessions survive restarts.
+session_secret: ""
+
+admins:
+  - username: "admin"
+    # Replace with the output of `jobcloud hash 'your-pw'`.
+    password_hash: "$2a$10$REPLACE_ME_WITH_BCRYPT_HASH_OUTPUT_FROM_jobcloud_hash"

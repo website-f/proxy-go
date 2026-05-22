@@ -1,0 +1,48 @@
+{{define "dashboard"}}
+<section class="hero">
+  <h1>Dashboard</h1>
+  <p class="muted">Live view of all routed sites. Auto-refreshes every 3s.</p>
+</section>
+
+<div class="kpis">
+  <div class="kpi">
+    <span class="kpi-label">Active sites</span>
+    <span class="kpi-value">{{.ActiveSites}}</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-label">Requests / min</span>
+    <span class="kpi-value">{{.ReqsPerMin}}</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-label">Bytes out / min</span>
+    <span class="kpi-value">{{.BytesPerMin}}</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-label">Error rate</span>
+    <span class="kpi-value {{if gt .ErrorRate 1.0}}danger{{end}}">{{printf "%.2f%%" .ErrorRate}}</span>
+  </div>
+</div>
+
+<section class="card">
+  <header class="card-header">
+    <h2>Sites</h2>
+    <a class="btn primary" href="/sites/new">+ Add site</a>
+  </header>
+  <table class="sites">
+    <thead>
+      <tr>
+        <th>Domain</th>
+        <th>Status</th>
+        <th>Upstream(s)</th>
+        <th class="num">req/min</th>
+        <th class="num">p95 ms</th>
+        <th class="num">errors</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="site-rows" data-poll-url="/partials/site-rows" data-poll-ms="3000">
+      {{template "site-rows" .}}
+    </tbody>
+  </table>
+</section>
+{{end}}

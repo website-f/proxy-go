@@ -1,0 +1,38 @@
+{{define "certs"}}
+<section class="hero">
+  <h1>Certificates</h1>
+  <p class="muted">All managed Let's Encrypt certs. Auto-renewal happens silently in the background.</p>
+</section>
+
+<section class="card">
+  <table class="sites">
+    <thead>
+      <tr>
+        <th>Domain</th>
+        <th>Issuer</th>
+        <th>Not after</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Certs}}
+      <tr>
+        <td class="mono">{{.Domain}}</td>
+        <td>{{if .Issuer}}{{.Issuer}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td>{{if .NotAfter}}{{.NotAfter}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td>
+          {{if .LastError}}
+            <span class="badge warn">Pending</span>
+            <div class="muted small">{{.LastError}}</div>
+          {{else}}
+            <span class="badge ok">Valid</span>
+          {{end}}
+        </td>
+      </tr>
+      {{else}}
+      <tr><td colspan="4" class="empty">No managed certificates.</td></tr>
+      {{end}}
+    </tbody>
+  </table>
+</section>
+{{end}}

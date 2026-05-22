@@ -1,0 +1,57 @@
+# jobcloud — single-binary reverse proxy + admin UI.
+#
+# Deployment recipe (per VPS, one-time):
+#
+#   sudo mkdir -p /opt/jobcloud
+#   sudo chown $USER:$USER /opt/jobcloud
+#   cd /opt/jobcloud
+#   git clone <this-repo> .            # or copy the jobcloud/ folder
+#   cd jobcloud
+#   cp config.example.yml config.yml
+#   nano config.yml                    # set acme_email + admins
+#   docker compose up -d
+#
+# To add a site, either:
+#   (a) drop a YAML in /opt/jobcloud/jobcloud/sites/<domain>.yml, OR
+#   (b) use the admin UI (SSH tunnel to 127.0.0.1:8090).
+#
+# Hot-reloads on file change. No restart needed.
+
+name: jobcloud
+
+services:
+  jobcloud:
+    build:
+      context: .
+      args:
+        VERSION: ${JOBCLOUD_VERSION:-dev}
+    image: jobcloud:${JOBCLOUD_VERSION:-dev}
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+      - "127.0.0.1:8090:8090"   # admin UI — loopback ONLY, reach via SSH tunnel
+    volumes:
+      - ./config.yml:/etc/jobcloud/config.yml:ro
+      - ./sites:/etc/jobcloud/sites
+      - ./certs:/etc/jobcloud/certs
+      - ./data:/etc/jobcloud/data
+    environment:
+      TZ: ${TZ:-UTC}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      # Needed to bind <1024 ports as non-root.
+      - NET_BIND_SERVICE
+    deploy:
+      resources:
+        limits:
+          memory: ${JOBCLOUD_MEMORY_LIMIT:-256m}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8090/login"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

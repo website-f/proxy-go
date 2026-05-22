@@ -1,0 +1,29 @@
+{{define "login"}}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sign in · jobcloud</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="login-body">
+<form method="post" action="/login" class="login-card">
+  <div class="brand center">
+    <span class="logo">⚡</span>
+    <span class="title">jobcloud</span>
+  </div>
+  <h2>Sign in</h2>
+  {{if .Error}}<div class="alert error">{{.Error}}</div>{{end}}
+  <label>Username
+    <input type="text" name="username" autocomplete="username" required autofocus>
+  </label>
+  <label>Password
+    <input type="password" name="password" autocomplete="current-password" required>
+  </label>
+  <input type="hidden" name="next" value="{{.Next}}">
+  <button type="submit" class="btn primary block">Sign in</button>
+</form>
+</body>
+</html>
+{{end}}

@@ -1,0 +1,57 @@
+{{define "site-form"}}
+<section class="hero">
+  <h1>{{if .New}}Add site{{else}}{{.Site.Domain}}{{end}}</h1>
+  <p class="muted">{{if .New}}Map a public domain to one or more upstream services running on this VPS.{{else}}Loaded from <span class="mono">{{.Site.Filename}}</span>{{end}}</p>
+</section>
+
+{{if .Error}}<div class="alert error">{{.Error}}</div>{{end}}
+{{if .Saved}}<div class="alert ok">Saved.</div>{{end}}
+
+<form method="post" action="{{if .New}}/sites{{else}}/sites/{{.Site.Filename}}{{end}}" class="card form">
+  <div class="row">
+    <label>Domain
+      <input type="text" name="domain" required value="{{.Site.Domain}}" placeholder="example.com" {{if not .New}}readonly{{end}}>
+    </label>
+    <label>Aliases <span class="muted small">(space-separated)</span>
+      <input type="text" name="aliases" value="{{join .Site.Aliases " "}}" placeholder="www.example.com">
+    </label>
+  </div>
+
+  <label>Upstreams <span class="muted small">(one per line, host:port)</span>
+    <textarea name="upstreams" rows="3" required placeholder="127.0.0.1:8082">{{join .Site.Upstreams "\n"}}</textarea>
+  </label>
+
+  <fieldset>
+    <legend>Routing</legend>
+    <label class="check"><input type="checkbox" name="enabled" {{if .Site.Enabled}}checked{{end}}> Enabled</label>
+    <label class="check"><input type="checkbox" name="http_to_https" {{if .Site.HTTPToHTTPS}}checked{{end}}> Force HTTPS (redirect 80 → 443)</label>
+    <label class="check"><input type="checkbox" name="websocket" {{if .Site.WebSocket}}checked{{end}}> WebSocket support</label>
+    <label class="check"><input type="checkbox" name="block_common_exploits" {{if .Site.BlockCommonExploits}}checked{{end}}> Block common exploits</label>
+  </fieldset>
+
+  <fieldset>
+    <legend>TLS</legend>
+    <label class="check"><input type="checkbox" name="tls_auto" {{if .Site.TLS.Auto}}checked{{end}}> Auto-issue Let's Encrypt cert</label>
+    <div class="muted small">DNS for the domain must point at this VPS before saving.</div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Rate limit</legend>
+    <label class="check"><input type="checkbox" name="rl_enabled" {{if .Site.RateLimit.Enabled}}checked{{end}}> Enable per-IP rate limiting</label>
+    <div class="row">
+      <label>Sustained rps <input type="number" name="rl_rps" min="0" value="{{.Site.RateLimit.RPS}}"></label>
+      <label>Burst <input type="number" name="rl_burst" min="0" value="{{.Site.RateLimit.Burst}}"></label>
+    </div>
+  </fieldset>
+
+  <div class="actions-row">
+    <button type="submit" class="btn primary">Save</button>
+    <a href="/sites" class="btn">Cancel</a>
+    {{if not .New}}
+      <form method="post" action="/sites/{{.Site.Filename}}/delete" onsubmit="return confirm('Delete this site config?')" style="display:inline;margin-left:auto">
+        <button type="submit" class="btn danger">Delete</button>
+      </form>
+    {{end}}
+  </div>
+</form>
+{{end}}

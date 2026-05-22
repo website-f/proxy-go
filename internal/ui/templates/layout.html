@@ -1,0 +1,36 @@
+{{define "layout"}}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{.Title}} · jobcloud</title>
+<link rel="stylesheet" href="/static/style.css">
+<script src="/static/app.js" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">⚡</span>
+    <span class="title">jobcloud</span>
+  </div>
+  <nav>
+    <a href="/" class="{{if eq .Active "dashboard"}}active{{end}}">Dashboard</a>
+    <a href="/sites" class="{{if eq .Active "sites"}}active{{end}}">Sites</a>
+    <a href="/certs" class="{{if eq .Active "certs"}}active{{end}}">Certificates</a>
+    <a href="/logout" class="logout">Sign out</a>
+  </nav>
+</header>
+<main>
+{{template .ContentTemplate .}}
+</main>
+<footer class="footer">
+  <span>jobcloud {{.Version}}</span>
+  <span class="sep">·</span>
+  <span>{{.SiteCount}} site{{if ne .SiteCount 1}}s{{end}}</span>
+  <span class="sep">·</span>
+  <span>uptime {{.Uptime}}</span>
+</footer>
+</body>
+</html>
+{{end}}
