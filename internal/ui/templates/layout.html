@@ -22,7 +22,10 @@
   </nav>
 </header>
 <main>
-{{template .ContentTemplate .}}
+{{if eq .ContentTemplate "dashboard"}}{{template "dashboard" .}}
+{{else if eq .ContentTemplate "site-form"}}{{template "site-form" .}}
+{{else if eq .ContentTemplate "certs"}}{{template "certs" .}}
+{{end}}
 </main>
 <footer class="footer">
   <span>jobcloud {{.Version}}</span>
