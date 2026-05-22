@@ -38,6 +38,8 @@ services:
       - ./data:/etc/jobcloud/data
     environment:
       TZ: ${TZ:-UTC}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     security_opt:
       - no-new-privileges:true
     cap_drop:
