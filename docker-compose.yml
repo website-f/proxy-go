@@ -27,10 +27,12 @@ services:
         VERSION: ${JOBCLOUD_VERSION:-dev}
     image: jobcloud:${JOBCLOUD_VERSION:-dev}
     restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-      - "127.0.0.1:8090:8090"   # admin UI — loopback ONLY, reach via SSH tunnel
+    # Host networking: jobcloud binds 80/443 directly on the host and can
+    # reach any service published on 127.0.0.1:<port> by other containers
+    # (or running on the host itself) without per-project network plumbing.
+    # The admin UI stays loopback-only via admin_addr: 127.0.0.1:8090 in
+    # config.yml — host mode means that bind is the HOST's 127.0.0.1.
+    network_mode: host
     volumes:
       - ./config.yml:/etc/jobcloud/config.yml:ro
       - ./sites:/etc/jobcloud/sites
@@ -38,11 +40,6 @@ services:
       - ./data:/etc/jobcloud/data
     environment:
       TZ: ${TZ:-UTC}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - default
-      - fitclaw_default
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -60,8 +57,3 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-
-networks:
-  default:
-  fitclaw_default:
-    external: true
