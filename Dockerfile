@@ -3,11 +3,12 @@
 FROM golang:1.22-alpine AS builder
 WORKDIR /src
 RUN apk add --no-cache git ca-certificates
-# Cache deps first (rebuilds only when go.mod/go.sum change).
-COPY go.mod go.sum* ./
-RUN go mod download
 COPY . .
 ARG VERSION=dev
+# `go mod tidy` resolves transitive deps + writes go.sum on the fly
+# (the repo doesn't ship go.sum so the build is self-contained).
+# Adds ~30s on first build; subsequent builds hit the layer cache.
+RUN go mod tidy
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -trimpath \
     -ldflags="-s -w -X main.Version=${VERSION}" \
